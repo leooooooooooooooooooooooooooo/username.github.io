@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生命靈數計算器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .input-section {
+            margin: 1rem 0;
+        }
+        input, button {
+            padding: 0.5rem;
+            font-size: 1rem;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result-section {
+            margin-top: 2rem;
+        }
+        #numerologyChart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        .chart-row {
+            display: flex;
+            justify-content: center;
+        }
+        .chart-cell {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2px;
+        }
+        .chart-cell.highlight {
+            border: 2px solid #4CAF50;
+            background-color: #e8f5e9;
+        }
+        .chart-cell.final-highlight {
+            border: 2px solid #f44336;
+            background-color: #ffebee;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 增加陰影效果 */
+            border-radius: 8px; /* 增加圓角 */
+            overflow: hidden; /* 隱藏邊框 */
+        }
+        th, td {
+            border: 2px solid #4CAF50; /* 使用更明顯的邊框 */
+            padding: 15px; /* 增加內邊距 */
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50; /* 表頭顏色 */
+            color: white;
+            font-weight: bold; /* 加粗字體 */
+            font-size: 1.2rem; /* 增加字體大小 */
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* 偶數行背景顏色 */
+        }
+        tr:hover {
+            background-color: #e8f5e9; /* 鼠標懸停效果 */
+        }
+        .element-header {
+            font-size: 2rem; /* 增加字體大小 */
+            margin-bottom: 1rem; /* 增加底部邊距 */
+            text-align: center;
+            color: #4CAF50; /* 標題顏色 */
+            border-bottom: 2px solid #4CAF50; /* 增加底部邊框 */
+            padding-bottom: 0.5rem; /* 增加內邊距 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>生命靈數計算器</h1>
+        <div class="input-section">
+            <input type="date" id="birthdate" required>
+            <button onclick="calculateLifeNumber()">計算</button>
+        </div>
+        <div class="result-section">
+            <div id="lifeNumberResult"></div>
+            <div id="numerologyChart"></div>
+            <div id="missingNumbers"></div> <!-- 新增顯示缺失數字的區域 -->
+            <div id="feedback"></div>
+            <div id="elementCountsTable"></div> <!-- 用於顯示五行數量的區域 -->
+        </div>
+    </div>
+    <script>
+        function calculateLifeNumber() {
+            const birthdate = document.getElementById('birthdate').value;
+            if (!birthdate) {
+                alert('請輸入出生日期');
+                return;
+            }
+
+            const [year, month, day] = birthdate.split('-');
+            const chart = generateNumerologyChart(day, month, year);
+            displayChart(chart);
+
+            const lifeNumber = chart[3][0];
+            document.getElementById('lifeNumberResult').innerHTML = `您的生命靈數是: ${lifeNumber}`;
+
+            provideFeedback(lifeNumber);
+            displayMissingNumbers(chart); // 顯示缺失的數字
+
+            const elementCounts = calculateElementCounts(chart);
+            const startingElement = getStartingElement(lifeNumber);
+            const elementsOrder = getElementsOrder(startingElement);
+            console.log('Element Counts:', elementCounts);
+            console.log('Starting Element:', startingElement);
+            console.log('Elements Order:', elementsOrder);
+            displayElementCounts(elementsOrder, elementCounts); // 確保這行存在
+        }
+
+        function displayMissingNumbers(chart) {
+            const positionNumbers = []; // 儲存位置編號的數字
+
+            // 收集第一、第二和第三行的數字
+            for (let i = 1; i < Math.min(4, chart.length); i++) {
+                chart[i].forEach(num => {
+                    // 只收集1到9的數字
+                    if (parseInt(num) >= 1 && parseInt(num) <= 9) {
+                        positionNumbers.push(parseInt(num));
+                    }
+                });
+            }
+
+            // 找出缺失的數字
+            const missingNumbers = [];
+            for (let i = 1; i <= 9; i++) {
+                if (!positionNumbers.includes(i)) {
+                    missingNumbers.push(i);
+                }
+            }
+
+            // 顯示缺失的數字
+            document.getElementById('missingNumbers').innerHTML = `
+    <style>
+        .missing-numbers {
+            font-size: 2rem; /* 增加字體大小 */
+            color: #d32f2f; /* 調整顏色 */
+            font-weight: bold; /* 加粗字體 */
+            text-align: center; /* 置中對齊 */
+            margin-top: 1rem; /* 上邊距 */
+            padding: 10px; /* 內邊距 */
+            border: 2px solid #d32f2f; /* 邊框 */
+            border-radius: 5px; /* 圓角 */
+            background-color: #fce4e4; /* 背景顏色 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* 添加陰影 */
+        }
+    </style>
+    缺失的數字: <span style="font-size: 2rem; color: #1976d2;">${missingNumbers.join(', ')}</span>
+`;
+        }
+
+        function displayChart(chart) {
+            const chartElement = document.getElementById('numerologyChart');
+            chartElement.innerHTML = '';
+
+            let position = 1; // 初始化位置編號
+            chart.forEach((row, rowIndex) => {
+                const rowElement = document.createElement('div');
+                rowElement.className = 'chart-row';
+                row.forEach((cell, cellIndex) => {
+                    const cellElement = document.createElement('div');
+                    cellElement.className = 'chart-cell';
+                    cellElement.textContent = cell; // 只有第二行及以後的數字顯示編號
+                    if (rowIndex > 0) position++; // 只有第二行及以後的數字增加位置編號
+
+                    // 高亮顯示倒三角形的三個角
+                    if (rowIndex === 1 && (cellIndex === 0 || cellIndex === row.length - 1)) {
+                        cellElement.classList.add('highlight');
+                    }
+                    
+                    // 特別高亮顯示生命靈數（在第7個位置）
+                    if (position === 8 ) {
+                        cellElement.classList.add('final-highlight');
+                    }
+
+                    rowElement.appendChild(cellElement);
+                });
+                chartElement.appendChild(rowElement);
+            });
+
+            // 在這裡新增一行，填入七個數字，初始值為0
+            const newRow = ['0', '0', '0', '0', '0', '0', '0']; // 使用 let 來聲明變數
+            chart.push(newRow); // 將新行添加到圖表中
+
+            // 根據生命靈數決定五行的起始位置
+            const lifeNumber = chart[3][0]; // 生命靈數
+            const startingElement = getStartingElement(lifeNumber); // 獲取起始五行
+            const elementsOrder = getElementsOrder(startingElement); // 獲取五行順序
+
+            // 在這裡顯示五行的數量
+            const elementCounts = calculateElementCounts(chart);
+            displayElementCounts(elementsOrder, elementCounts);
+        }
+
+        function getStartingElement(lifeNumber) {
+            switch (lifeNumber) {
+                case 1:
+                case 6:
+                    return '金';
+                case 2:
+                case 7:
+                    return '水';
+                case 3:
+                case 8:
+                    return '火';
+                case 4:
+                    return '木';
+                case 5:
+                    return '土';
+                case 9:
+                    return '木';
+                default:
+                    return null;
+            }
+        }
+
+        function getElementsOrder(startingElement) {
+            const order = {
+                '金': ['金', '水', '木', '火', '土'],
+                '水': ['水', '木', '火', '土', '金'],
+                '火': ['火', '土', '金', '水', '木'],
+                '土': ['土', '金', '水', '木', '火'],
+                '木': ['木', '火', '土', '金', '水']
+            };
+            const result = order[startingElement];
+            console.log('Elements Order:', result);
+            return result;
+        }
+
+        function calculateElementCounts(chart) {
+            const counts = {
+                '水': 0,
+                '木': 0,
+                '火': 0,
+                '土': 0,
+                '金': 0
+            };
+
+            // 根據數字樹計算每個五行的數量
+            for (let i = 1; i < chart.length; i++) {
+                chart[i].forEach(num => {
+                    if (num == 2 || num == 7) counts['水']++;
+                    if (num == 4 || num == 9) counts['木']++;
+                    if (num == 3 || num == 8) counts['火']++;
+                    if (num == 5) counts['土']++;
+                    if (num == 1 || num == 6) counts['金']++;
+                });
+            }
+
+            return counts;
+        }
+
+        function displayElementCounts(elementsOrder, elementCounts) {
+            const countsElement = document.getElementById('elementCountsTable'); // 使用新的區域顯示五行數量
+            countsElement.innerHTML = `
+                <style>
+                    .table-container {
+                        display: flex;
+                        justify-content: center; /* 置中表格 */
+                        margin-top: 1rem;
+                    }
+                    table {
+                        width: 60%; /* 調整表格寬度 */
+                        border-collapse: collapse;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                        border-radius: 8px;
+                        overflow: hidden;
+                    }
+                    th, td {
+                        border: 2px solid #2e7d32; /* 調整邊框顏色 */
+                        padding: 10px; /* 減少內邊距 */
+                        text-align: center;
+                        font-size: 0.9rem; /* 減小字體大小 */
+                    }
+                    th {
+                        background-color: #4CAF50;
+                        color: white;
+                        font-weight: bold;
+                        font-size: 1rem; /* 減小表頭字體大小 */
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f9f9f9;
+                    }
+                    tr:hover {
+                        background-color: #e8f5e9;
+                    }
+                    .missing-numbers {
+                        font-size: 1.5rem; /* 放大缺失數字體 */
+                        color: #d32f2f; /* 調整顏色 */
+                        text-align: center;
+                        margin-top: 1rem;
+                        padding: 10px; /* 內邊距 */
+                        border: 2px solid #d32f2f; /* 邊框 */
+                        border-radius: 5px; /* 圓角 */
+                        background-color: #fce4e4; /* 背景顏色 */
+                    }
+                </style>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>數量</th>
+                                ${elementsOrder.map(element => `<th>${element}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>數量</td>
+                                ${elementsOrder.map(element => `<td>${elementCounts[element]}</td>`).join('')}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function generateNumerologyChart(day, month, year) {
+            const chart = [];
+            chart.push([day.padStart(2, '0'), month.padStart(2, '0'), year.slice(0, 2), year.slice(2)]);
+            
+            let row = [];
+            row.push(sumDigits(day));
+            row.push(sumDigits(month));
+            row.push(sumDigits(year.slice(0, 2)));
+            row.push(sumDigits(year.slice(2)));
+            chart.push(row); // 第二行
+
+            while (row.length > 1) {
+                const newRow = [];
+                for (let i = 0; i < row.length - 1; i += 2) {
+                    newRow.push(sumDigits(row[i] + row[i + 1]));
+                }
+                chart.push(newRow); // 添加新行
+                row = newRow;
+            }
+
+            // 計算第四行
+            if (chart.length > 2) {
+                const fourthRow = [];
+                fourthRow.push(sumDigits(chart[2][1] + chart[3][0])); // 第二行的3 + 第三行的7
+                fourthRow.push(sumDigits(chart[2][0] + chart[3][0])); // 第二行的4 + 第三行的7
+                chart.push(fourthRow); // 將第四行添加到圖表中
+            }
+
+            // 在第五行初始化位置 10 到 16 的數字為 0
+            const fifthRow = Array(7).fill(0); // 假設有 7 個位置
+            chart.push(fifthRow); // 將第五行添加到圖表中
+
+            // 計算 11 和 12 的值
+            if (chart.length > 2) {
+                const eleventhValue = sumDigits(parseInt(chart[1][1]) + parseInt(chart[2][0])); // 11號
+                const twelfthValue = sumDigits(parseInt(chart[1][0]) + parseInt(chart[2][0])); // 12號
+
+                // 更新第五行的 11 和 12 的位置
+                chart[chart.length - 1][1] = eleventhValue; // 更新位置 11
+                chart[chart.length - 1][2] = twelfthValue; // 更新位置 12
+
+                // 計算位置 10 的值
+                const tenthValue = sumDigits(eleventhValue + twelfthValue); // 10號
+                chart[chart.length - 1][0] = tenthValue; // 更新位置 10
+            }
+
+            // 計算位置 13 到 16 的值
+            if (chart.length > 4) {
+                const thirteenthValue = sumDigits(chart[4][0] + chart[4][1]); // 13號: 編號8 + 編號9
+                const fourteenthValue = sumDigits(chart[1][2] + chart[2][1]); // 14號: 編號3 + 編號6
+                const fifteenthValue = sumDigits(chart[1][3] + chart[2][1]); // 15號: 編號4 + 編號6
+                const sixteenthValue = sumDigits(fourteenthValue + fifteenthValue); // 16號: 編號14 + 編號15
+
+                // 更新第五行的 13 到 16 的位置
+                chart[chart.length - 1][3] = thirteenthValue; // 更新位置 13
+                chart[chart.length - 1][4] = fourteenthValue; // 更新位置 14
+                chart[chart.length - 1][5] = fifteenthValue; // 更新位置 15
+                chart[chart.length - 1][6] = sixteenthValue; // 更新位置 16
+            }
+
+            return chart;
+        }
+        
+
+        function sumDigits(num) {
+            let sum = String(num).split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+            return sum >= 10 ? sumDigits(sum) : sum;
+        }
+
+        function provideFeedback(lifeNumber) {
+
+            document.getElementById('feedback').innerHTML = `
+
+            `;
+        }
+        document.getElementById('positionNumbers').style.display = 'none'; // 隱藏位置編號
+       
+    </script>
+</body>
+</html>
